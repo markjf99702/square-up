@@ -1,0 +1,15 @@
+{
+  "name": "square-up",
+  "private": true,
+  "type": "module",
+  "description": "Split costs for a trip, a house or a dinner, and settle in the fewest payments.",
+  "scripts": {
+    "start": "npx --yes http-server -c-1 -p 8080 .",
+    "test": "node --test test/unit.test.mjs && node test/e2e.mjs",
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "upng-js": "^2.1.0"
+  }
+}

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Square Up</title>
+  <meta name="description" content="Split costs for a trip, a shared house or a dinner, and settle up in the fewest payments. Split equally, by shares, by amounts, by percent, or a restaurant bill by item with tax and tip. Send the tab to the others as a link, with no accounts.">
+  <meta property="og:title" content="Square Up">
+  <meta property="og:description" content="Split costs for a trip, a house or a dinner, and settle in the fewest payments.">
+  <meta property="og:image" content="https://junkdrawer.works/square-up/og.png">
+  <meta property="og:url" content="https://junkdrawer.works/square-up/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#e6e1d3" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111512" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="preload" href="fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/caveat.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="bar">
+    <a class="brand" href="#/">
+      <img src="icon.svg" alt="" width="30" height="30">
+      <span>Square Up</span>
+    </a>
+    <a class="bar-link" id="allLink" href="#/" hidden>All tabs</a>
+  </header>
+
+  <main id="app" tabindex="-1"></main>
+
+  <noscript><p class="noscript">Square Up needs JavaScript to add up the tab.</p></noscript>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog class="sheet" id="sheet">
+    <form method="dialog" class="sheet-body"></form>
+  </dialog>
+</body>
+</html>
