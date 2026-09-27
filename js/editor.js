@@ -116,7 +116,7 @@ export function editor(t, existing, startHow = 'equal') {
             ${chip('data-act="several" data-key="several"', 'Several people', st.several, 'quiet')}
           </div>
           ${st.several ? `
-            <ul class="split-rows">${ppl.map(p => `
+            <ul class="split-rows paid-rows">${ppl.map(p => `
               <li><span class="nm">${esc(p.name)}</span>${moneyInput(`paid-${p.id}`, st.paidText[p.id] || '', `data-paid="${p.id}"`, 'small')}</li>`).join('')}
             </ul>
             <p class="status" id="paidStatus"></p>` : ''}
@@ -223,8 +223,12 @@ export function editor(t, existing, startHow = 'equal') {
   function refresh() {
     const e = build();
     const why = problem(e);
+    // Exact shares as soon as the split itself adds up, whatever else is still missing.
     let shares = null;
-    try { if (!why) shares = M.sharesOf(M.tidy(e)); } catch { shares = null; }
+    try {
+      const probe = M.tidy({ ...e, what: e.what || '-', paid: { [ids[0]]: e.amount } });
+      if (e.amount > 0 && !M.checkExpense(probe, ids)) shares = M.sharesOf(probe);
+    } catch { shares = null; }
     const $ = sel => app.querySelector(sel);
     const each = (pid, text) => { const o = app.querySelector(`[data-each="${pid}"]`); if (o) o.textContent = text; };
     const amountKnown = e.amount > 0;
