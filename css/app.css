@@ -127,6 +127,12 @@ h1, h2, h3 { line-height: 1.15; }
 main { max-width: 680px; margin: 0 auto; padding: 16px 16px 120px; outline: none; }
 .noscript { text-align: center; padding: 3rem 16px; }
 
+/* Part of junkdrawer.works, under every screen */
+.jd-foot { max-width: 680px; margin: 0 auto; padding: 4px 16px calc(20px + env(safe-area-inset-bottom)); text-align: center; font-size: .86rem; color: var(--ink-2); }
+.jd-foot a { text-decoration: none; }
+.jd-foot a:hover, .jd-foot a:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+.jd-foot span { margin: 0 6px; color: var(--muted); }
+
 /* Buttons and chips */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
