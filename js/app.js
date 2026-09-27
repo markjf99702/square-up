@@ -6,7 +6,7 @@ import { readLink, tabLink } from './share.js';
 import { merge, nothingNew } from './merge.js';
 import { sampleTab } from './sample.js';
 import { settle } from './settle.js';
-import { app, esc, on, go, toast, money, moneyShort, whoLower, canSave, download, plural, dayRange } from './ui.js';
+import { app, esc, on, go, toast, money, moneyShort, whoLower, canSave, download, plural, dayRange, closeSheet } from './ui.js';
 import { tabScreen } from './tab.js';
 import { editor } from './editor.js';
 
@@ -16,6 +16,7 @@ async function route() {
   const path = location.hash.replace(/^#\/?/, '');
   const [head, a, b, c] = path.split('/');
   document.getElementById('allLink').hidden = !head;
+  closeSheet(); // going back with a sheet open shouldn't leave it over the next screen
   if (path !== lastPath) {
     window.scrollTo(0, 0);
     lastPath = path;

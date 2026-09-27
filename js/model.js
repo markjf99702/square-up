@@ -235,8 +235,9 @@ export function span(tab) {
 
 // A tab with only what travels in a link or a backup: no local notes.
 export function shareable(tab) {
-  const { local, ...rest } = tab;
-  return structuredClone(rest);
+  const copy = structuredClone(tab);
+  delete copy.local;
+  return copy;
 }
 
 // Mark something as changed: its change time moves on, and so does the tab's if it's the tab itself.

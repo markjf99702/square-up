@@ -342,7 +342,7 @@ export function editor(t, existing, startHow = 'equal') {
         <p class="kicker">${at + 1} of ${ppl.length}</p>
         <h2>${esc(p.name)}, tap what you had</h2>
         <p>Tap anything you shared too. Then pass the phone on.</p>
-        <ul class="round-items">${real.map((it, i) => {
+        <ul class="round-items">${real.map(it => {
     const others = ids.filter(x => x !== p.id && it.who.has(x)).map(x => short(M.personName(t, x)));
     const v = amt(it.amtText);
     return `<li><button type="button" class="round-item" data-rt="${it.id}" aria-pressed="${it.who.has(p.id)}">
@@ -493,6 +493,6 @@ export function editor(t, existing, startHow = 'equal') {
   });
 
   draw();
-  if (!existing) app.querySelector(st.how === 'items' ? '[data-key="what"]' : '[data-key="what"]')?.focus({ preventScroll: true });
+  if (!existing) app.querySelector('[data-key="what"]')?.focus({ preventScroll: true });
   window.addEventListener('hashchange', closeSheet, { once: true });
 }

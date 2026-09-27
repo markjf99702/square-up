@@ -290,6 +290,27 @@ await page.locator('.person', { has: page.locator('[value="Priya"]') }).locator(
 await page.locator('.person', { has: page.locator('[value="Priya"]') }).locator('[data-handle="paypal"]').blur();
 assert.equal(await page.locator('.person', { has: page.locator('[value="Priya"]') }).locator('[data-handle="paypal"]').inputValue(), 'priyaexample');
 await fits(page, 'the people');
+// Someone new can be added, and taken off again while they're on nothing.
+await page.fill('#newPerson', 'Robin');
+await page.press('#newPerson', 'Enter');
+await page.locator('.person input[value="Robin"]').waitFor();
+assert.equal(await page.locator('.person').count(), 5);
+const robin = page.locator('.person', { has: page.locator('[value="Robin"]') });
+await robin.locator('summary').click();
+await robin.locator('[data-remove]').click();
+assert.equal(await page.locator('.person').count(), 4);
+await page.click('.toast button'); // Undo
+assert.equal(await page.locator('.person').count(), 5);
+await page.locator('.person', { has: page.locator('[value="Robin"]') }).locator('summary').click();
+await page.locator('.person', { has: page.locator('[value="Robin"]') }).locator('[data-remove]').click();
+assert.equal(await page.locator('.person').count(), 4);
+// A spreadsheet of the tab.
+const [sheetFile] = await Promise.all([page.waitForEvent('download'), page.click('[data-act="csv"]')]);
+assert.equal(sheetFile.suggestedFilename(), 'Lisbon trip.csv');
+const csv = (await readFile(await sheetFile.path(), 'utf8')).split('\n');
+assert.equal(csv[0], 'Date,What,Category,Amount,Paid by,Split,Mark share,Sam share,Jo share,Priya share');
+assert.ok(csv.some(l => l.includes('Dinner at Tasca,Food & drink,77.40,Jo 77.40,items,31.80,36.00,9.60,')), 'the dinner row');
+assert.ok(csv.some(l => l.startsWith(',Up / down,') && l.endsWith(',0.00,0.00,0.00,0.00')), 'everyone square');
 await page.click('[data-act="archive"]');
 await page.goto(base + '#/');
 await page.locator('details.archived').waitFor();

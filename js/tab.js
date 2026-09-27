@@ -383,7 +383,6 @@ function handlers(t, section, plan) {
     keydown(e) {
       if (e.key === 'Enter' && e.target.id === 'newPerson') { e.preventDefault(); addPersonFrom(t, section); }
     },
-    submit: null,
   };
 }
 
