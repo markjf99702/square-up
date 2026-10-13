@@ -373,6 +373,22 @@ await page.goto(base + `#/t/${tabId}`);
 assert.equal(await total(page), '€718.80', 'the tab opens offline');
 await mark.ctx.setOffline(false);
 
+// ---------- Other tools' offline copies ----------
+// The tools at junkdrawer.works share one address, so they share one set of caches too. When Square Up's
+// service worker starts, it clears out its own old copy and leaves the other tools' copies alone.
+const shared = await device();
+await shared.page.goto(base + 'icon.svg'); // the same address, before Square Up has a service worker
+await shared.page.evaluate(async () => {
+  await (await caches.open('another-tool-v1')).put('another-tool/', new Response('another tool, kept for offline'));
+  await (await caches.open('square-up-v0')).put('index.html', new Response('an old Square Up'));
+});
+await shared.page.goto(base);
+// The service worker takes over the page once it has cleared out.
+await shared.page.waitForFunction(() => navigator.serviceWorker?.controller, null, { timeout: 30000 });
+assert.equal(await shared.page.evaluate(() => caches.has('another-tool-v1')), true, 'another tool’s offline copy is kept');
+assert.equal(await shared.page.evaluate(() => caches.has('square-up-v0')), false, 'Square Up’s old offline copy is cleared out');
+await shared.ctx.close();
+
 // ---------- Tabs saved in a shape it doesn't expect ----------
 // Storage edited by hand or damaged: a tab that can be drawn still opens, and nothing is thrown away.
 const odd = await device();
