@@ -365,6 +365,7 @@ export function editor(t, existing, startHow = 'equal') {
             const it = st.items.find(x => x.id === b.dataset.rt);
             if (it.who.has(p.id)) it.who.delete(p.id); else it.who.add(p.id);
             b.setAttribute('aria-pressed', it.who.has(p.id));
+            draw(); // the form behind keeps up, so it's right however the sheet is closed (Esc, a phone's back gesture)
           };
         });
         body.querySelector('#rtBack').onclick = () => { if (at) { at--; drawRound(); } else { close(); draw(); } };

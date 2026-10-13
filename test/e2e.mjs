@@ -157,6 +157,15 @@ for (const n of ['Mark', 'Sam', 'Jo', 'Priya']) {
 }
 assert.equal(await page.locator('.item').nth(2).locator('[aria-pressed="true"][data-iwho]').count(), 3, 'three had wine');
 assert.equal(await page.locator('.item').nth(2).locator('.each').innerText(), '€8.00 each');
+// Leaving the round another way (Esc, or a phone's back gesture) still leaves the form showing what was tapped.
+await page.click('[data-act="round"]');
+await page.locator('.round-item', { hasText: 'Octopus' }).click(); // Mark taps the octopus too
+await page.keyboard.press('Escape');
+await page.waitForFunction(() => !document.getElementById('sheet').open);
+const markOctopus = page.locator('.item').nth(1).locator('[data-iwho]', { hasText: 'Mark' });
+assert.equal(await markOctopus.getAttribute('aria-pressed'), 'true', 'the form shows what was tapped in the round');
+await markOctopus.click(); // he didn't have any after all
+assert.equal(await markOctopus.getAttribute('aria-pressed'), 'false');
 await page.click('[data-tip="2000"]');
 await payer(page, 'Jo').click();
 assert.equal(await page.locator('#subtotal').innerText(), '€64.50');
