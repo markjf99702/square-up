@@ -254,6 +254,8 @@ await fits(page, 'squaring up');
 
 // Sam pays part first, then the plan works out again from what's left.
 await page.locator('.ticket', { hasText: 'Sam' }).locator('[data-rec]').click();
+assert.equal(await page.locator('#payAmount').inputValue(), '100.28');
+assert.ok(await page.locator('#payAmount').evaluate(i => i.scrollWidth <= i.clientWidth), 'the amount to record shows whole on a phone');
 await page.fill('#payAmount', '50');
 await page.click('#payGo');
 await page.locator('.toast', { hasText: 'Recorded: Sam paid you €50.00' }).waitFor();

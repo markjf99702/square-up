@@ -515,7 +515,7 @@ input[type=date].input { min-width: 0; }
 .sheet-body .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
 .sheet-body .grow { flex: 1; }
 .pay-pair { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: end; }
-.pay-pair:last-of-type { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.pay-pair + .pay-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .pay-pair .arrow { padding-bottom: 12px; color: var(--print); font-weight: 800; }
 .sheet.round .kicker { font-size: .78rem; }
 .round-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
