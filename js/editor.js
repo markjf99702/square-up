@@ -340,6 +340,12 @@ export function editor(t, existing, startHow = 'equal') {
     const real = st.items.filter(it => it.name.trim() || amt(it.amtText));
     if (!real.length) { toast('Add the items first.'); return; }
     let at = start;
+    // Each tap redraws the form, the button that opened the round with it, so however the round ends
+    // (Done, Stop, Esc, a phone's back gesture) focus goes back to the new one. Not once the page has moved on.
+    const here = location.hash;
+    document.getElementById('sheet').addEventListener('close', () => {
+      if (location.hash === here) app.querySelector('[data-act="round"]')?.focus({ preventScroll: true });
+    }, { once: true });
     const drawRound = () => {
       const p = ppl[at];
       sheet(`

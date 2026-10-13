@@ -177,6 +177,9 @@ await page.keyboard.press('Escape');
 await page.waitForFunction(() => !document.getElementById('sheet').open);
 const markOctopus = page.locator('.item').nth(1).locator('[data-iwho]', { hasText: 'Mark' });
 assert.equal(await markOctopus.getAttribute('aria-pressed'), 'true', 'the form shows what was tapped in the round');
+// And focus goes back to the button that started the round, not to the top of the page.
+await page.waitForFunction(() => document.activeElement?.dataset.act === 'round', null, { timeout: 5000 }).catch(() => {});
+assert.equal(await page.evaluate(() => document.activeElement?.dataset.act), 'round', 'focus goes back to Go round the table');
 await markOctopus.click(); // he didn't have any after all
 assert.equal(await markOctopus.getAttribute('aria-pressed'), 'false');
 await page.click('[data-tip="2000"]');
