@@ -333,6 +333,11 @@ await page.click('text=Try a sample tab');
 await onTab(page);
 assert.match(await text(page), /Dinner at Pappy’s/);
 await page.goto(base + '#/');
+// From the keyboard, Load a backup (a file input inside its label) shows focus on the words you can see.
+await page.focus('[data-act="save"]');
+await page.keyboard.press('Tab');
+assert.equal(await page.evaluate(() => document.activeElement.id), 'loadBackup');
+assert.equal(await page.locator('.keep label').evaluate(l => getComputedStyle(l).outlineStyle), 'solid', 'Load a backup shows keyboard focus');
 const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-act="save"]')]);
 const backup = await readFile(await download.path(), 'utf8');
 assert.equal(JSON.parse(backup).tabs.length, 2);

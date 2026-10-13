@@ -286,6 +286,7 @@ button.line { font: inherit; }
 .keep p { margin: 0; flex: 1 1 100%; }
 .keep label { cursor: pointer; }
 .keep input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.keep label:has(:focus-visible) { outline: 3px solid var(--pen); outline-offset: 2px; }
 
 /* A tab's header and its three parts */
 .tabhead { margin: 0 0 14px; }
