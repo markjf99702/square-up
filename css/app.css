@@ -446,6 +446,7 @@ input[type=date].input { min-width: 0; }
 .split-rows li.out .nm, .split-rows li.out .each { color: var(--muted); }
 .split-rows .money.small { width: 118px; }
 .split-rows .money.pct { width: 92px; }
+.split-rows .each { grid-column: -2; }
 .each { text-align: right; font-weight: 650; color: var(--ink-2); font-size: .95rem; white-space: nowrap; }
 .tick { width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid var(--rule-2); background: var(--field); color: transparent; font-weight: 800; display: grid; place-items: center; padding: 0; }
 .tick[aria-pressed="true"] { background: var(--print); border-color: var(--print); color: var(--btn-ink); }
