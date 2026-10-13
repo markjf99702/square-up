@@ -383,6 +383,15 @@ const [oddBackup] = await Promise.all([odd.page.waitForEvent('download'), odd.pa
 assert.deepEqual(JSON.parse(await readFile(await oddBackup.path(), 'utf8')).tabs.map(t => t.n), ['Old tab']);
 await odd.ctx.close();
 
+// ---------- Without JavaScript ----------
+// The message saying what it needs JavaScript for is the first thing on the page, above the footer.
+const nojs = await browser.newContext({ viewport: { width: 390, height: 844 }, javaScriptEnabled: false });
+const nojsPage = await nojs.newPage();
+await nojsPage.goto(base);
+const [said, foot] = await Promise.all([nojsPage.locator('.noscript').boundingBox(), nojsPage.locator('.jd-foot').boundingBox()]);
+assert.ok(said.y + said.height <= foot.y, 'the no-JavaScript message comes before the footer');
+await nojs.close();
+
 assert.deepEqual(problems.filter(p => !p.startsWith('failed:')), [], 'problems while using it');
 await browser.close();
 server.close();
