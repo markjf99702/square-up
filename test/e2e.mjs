@@ -44,8 +44,13 @@ const total = page => page.locator('.tot:not(.sub) b').innerText();
 // Picks a person's chip, row or control by their name.
 const row = (page, list, name) => page.locator(`${list} li`).filter({ has: page.locator('.nm', { hasText: new RegExp(`^${name}$`) }) });
 const payer = (page, name) => page.locator('[data-payer]').filter({ hasText: new RegExp(`^${name}`) });
-// How far a person's part sits from the right-hand end of their row: 0 when the parts line up.
-const fromRight = loc => loc.evaluate(o => Math.round(o.closest('li').getBoundingClientRect().right - o.getBoundingClientRect().right));
+// How far the end of a person's part sits from the right-hand end of their row: 0 when the parts line up,
+// below 0 when it runs past the end.
+const fromRight = loc => loc.evaluate(o => {
+  const text = document.createRange();
+  text.selectNodeContents(o);
+  return Math.round(o.closest('li').getBoundingClientRect().right - text.getBoundingClientRect().right);
+});
 
 // Waits for a tab to be drawn: the address changes a moment before the page does.
 async function onTab(page) {
@@ -89,6 +94,10 @@ await page.fill('[data-key="amount"]', '480');
 assert.equal(await payer(page, 'Mark').getAttribute('aria-pressed'), 'true');
 assert.equal(await row(page, '.split-rows', 'Sam').locator('.each').innerText(), '€120.00');
 assert.equal(await fromRight(row(page, '.split-rows', 'Sam').locator('.each')), 0, 'split equally, the parts line up at the right');
+await page.fill('[data-key="amount"]', '48000000'); // a long part shows whole too
+assert.equal(await row(page, '.split-rows', 'Sam').locator('.each').innerText(), '€12,000,000.00');
+assert.equal(await fromRight(row(page, '.split-rows', 'Sam').locator('.each')), 0, 'split equally, a long part shows whole');
+await page.fill('[data-key="amount"]', '480');
 await fits(page, 'adding an expense');
 await saveExpense(page, 'Apartment');
 assert.equal(await total(page), '€480.00');

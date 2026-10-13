@@ -440,6 +440,8 @@ input[type=date].input { min-width: 0; }
 .split-rows { list-style: none; margin: 10px 0 0; padding: 0; }
 .split-rows li { display: grid; grid-template-columns: minmax(0, 1fr) auto 86px; align-items: center; gap: 10px; min-height: 50px; padding: 4px 0; border-bottom: 1px dashed var(--rule); }
 .split-rows li:has(> .tick) { grid-template-columns: auto minmax(0, 1fr) auto 86px; }
+/* Split equally there's no control in the row, so a long part takes room from the name rather than running off the check. */
+.split-rows li:has(> .tick):not(:has(> .stepper)) { grid-template-columns: auto minmax(0, 1fr) minmax(86px, max-content); }
 .split-rows.paid-rows li { grid-template-columns: minmax(0, 1fr) auto; }
 .split-rows li:last-child { border-bottom: 0; }
 .split-rows .nm { font-weight: 600; overflow-wrap: anywhere; line-height: 1.2; }
@@ -542,6 +544,7 @@ input[type=date].input { min-width: 0; }
   .line .amt { min-width: 92px; padding-right: 10px; }
   .split-rows li { grid-template-columns: minmax(0, 1fr) auto 76px; gap: 8px; }
   .split-rows li:has(> .tick) { grid-template-columns: auto minmax(0, 1fr) auto 76px; }
+  .split-rows li:has(> .tick):not(:has(> .stepper)) { grid-template-columns: auto minmax(0, 1fr) minmax(76px, max-content); }
   .split-rows .money.small { width: 104px; }
 }
 @media (prefers-reduced-motion: reduce) {
