@@ -389,6 +389,7 @@ await onTab(odd.page);
 assert.equal(await odd.page.locator('.written').innerText(), 'Old tab');
 assert.equal(await odd.page.evaluate(() => JSON.parse(localStorage.getItem('square-up')).tabs.length), 3, 'the others are kept as they were');
 await odd.page.goto(base + '#/t/half');
+await odd.page.locator('.note-card').waitFor(); // the address changes a moment before the page does
 assert.match(await text(odd.page), /That tab isn’t here/);
 await odd.page.goto(base + '#/');
 const [oddBackup] = await Promise.all([odd.page.waitForEvent('download'), odd.page.click('[data-act="save"]')]);
