@@ -343,6 +343,28 @@ await page.goto(base + `#/t/${tabId}`);
 assert.equal(await total(page), '€718.80', 'the tab opens offline');
 await mark.ctx.setOffline(false);
 
+// ---------- Tabs saved in a shape it doesn't expect ----------
+// Storage edited by hand or damaged: a tab that can be drawn still opens, and nothing is thrown away.
+const odd = await device();
+await odd.page.goto(base);
+await odd.page.evaluate(() => localStorage.setItem('square-up', JSON.stringify({ name: '', tabs: [
+  { id: 'old', name: 'Old tab', currency: 'USD', created: Date.now(), changed: Date.now(), people: [], entries: [] }, // no local part
+  null,
+  { id: 'half', name: 'Half a tab', currency: 'USD', local: {} }, // no people or entries
+] })));
+await odd.page.reload();
+assert.equal(await odd.page.locator('.stub').count(), 1, 'the tab that can be drawn is listed');
+await odd.page.click('.stub a');
+await onTab(odd.page);
+assert.equal(await odd.page.locator('.written').innerText(), 'Old tab');
+assert.equal(await odd.page.evaluate(() => JSON.parse(localStorage.getItem('square-up')).tabs.length), 3, 'the others are kept as they were');
+await odd.page.goto(base + '#/t/half');
+assert.match(await text(odd.page), /That tab isn’t here/);
+await odd.page.goto(base + '#/');
+const [oddBackup] = await Promise.all([odd.page.waitForEvent('download'), odd.page.click('[data-act="save"]')]);
+assert.deepEqual(JSON.parse(await readFile(await oddBackup.path(), 'utf8')).tabs.map(t => t.n), ['Old tab']);
+await odd.ctx.close();
+
 assert.deepEqual(problems.filter(p => !p.startsWith('failed:')), [], 'problems while using it');
 await browser.close();
 server.close();

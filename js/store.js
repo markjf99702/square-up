@@ -4,10 +4,19 @@ import { fromWire, toWire } from './share.js';
 
 const KEY = 'square-up';
 
+const isObject = v => !!v && typeof v === 'object' && !Array.isArray(v);
+// A tab the screens can draw. Anything else in storage (edited by hand, or damaged) stays there as it was,
+// so nothing is lost on the next save, but it isn't listed, opened or put in a backup.
+const usable = t => isObject(t) && typeof t.id === 'string' && Array.isArray(t.people) && Array.isArray(t.entries);
+
 function read() {
   try {
     const data = JSON.parse(localStorage.getItem(KEY));
-    if (data && Array.isArray(data.tabs)) return data;
+    if (data && Array.isArray(data.tabs)) {
+      // This device's own notes on a tab: put() always writes them, so a tab saved without them gets an empty set.
+      for (const t of data.tabs) if (usable(t) && !isObject(t.local)) t.local = {};
+      return data;
+    }
   } catch { /* private window, blocked storage or bad data: start empty */ }
   return { tabs: [], name: '' };
 }
@@ -19,21 +28,21 @@ function write() {
 }
 
 export const store = {
-  all: () => [...state.tabs].sort((a, b) => (b.local?.opened || b.created) - (a.local?.opened || a.created)),
-  get: id => state.tabs.find(t => t.id === id),
+  all: () => state.tabs.filter(usable).sort((a, b) => (b.local?.opened || b.created) - (a.local?.opened || a.created)),
+  get: id => state.tabs.find(t => usable(t) && t.id === id),
   put(t) {
     t.local ||= {};
-    const i = state.tabs.findIndex(x => x.id === t.id);
+    const i = state.tabs.findIndex(x => x?.id === t.id);
     if (i >= 0) state.tabs[i] = t; else state.tabs.push(t);
     write();
   },
   remove(id) {
-    state.tabs = state.tabs.filter(t => t.id !== id);
+    state.tabs = state.tabs.filter(t => t?.id !== id);
     write();
   },
   get name() { return state.name || ''; },
   set name(v) { state.name = String(v || '').slice(0, 40); write(); },
-  backup: () => JSON.stringify({ app: 'square-up', version: 1, saved: new Date().toISOString(), name: state.name, tabs: state.tabs.map(t => ({ ...toWire(t), local: t.local })) }),
+  backup: () => JSON.stringify({ app: 'square-up', version: 1, saved: new Date().toISOString(), name: state.name, tabs: state.tabs.filter(usable).map(t => ({ ...toWire(t), local: t.local })) }),
   // Adds the tabs from a backup. A tab that's already here is merged with the backup's copy, so nothing is lost either way.
   restore(text) {
     let data;
@@ -43,7 +52,7 @@ export const store = {
     for (const w of data.tabs) {
       let t;
       try { t = fromWire(w).tab; } catch { continue; }
-      const mine = state.tabs.find(x => x.id === t.id);
+      const mine = this.get(t.id);
       if (mine) {
         const { tab } = merge(mine, t);
         this.put(tab);
