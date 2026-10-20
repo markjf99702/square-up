@@ -38,6 +38,16 @@ async function device() {
 }
 
 const fits = async (page, where) => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${where} scrolls sideways on a phone`);
+// How well an element's text stands out from its background, worked out the way WCAG does (4.5 or more reads well).
+const contrast = loc => loc.evaluate(el => {
+  const lum = c => {
+    const [r, g, b] = c.match(/[\d.]+/g).slice(0, 3).map(v => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const s = getComputedStyle(el);
+  const [hi, lo] = [lum(s.color), lum(s.backgroundColor)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+});
 const text = page => page.locator('main').innerText();
 const total = page => page.locator('.tot:not(.sub) b').innerText();
 
@@ -273,6 +283,12 @@ await page.locator('.standing').waitFor();
 const standing = await page.locator('.standing').innerText();
 for (const s of ['you’re owed\\s+\\+€344.52', 'owes\\s+−€100.28', 'owes\\s+−€104.56', 'owes\\s+−€139.68']) assert.match(standing, new RegExp(s));
 assert.equal(await page.locator('.ticket').count(), 3, 'three payments settle it');
+assert.equal(await page.locator('.sections i').innerText(), '3');
+// The count on Square up reads well in the dark as well as the light.
+await page.emulateMedia({ colorScheme: 'dark' });
+assert.ok(await contrast(page.locator('.sections i')) >= 4.5, 'the count of payments reads well in the dark');
+await page.emulateMedia({ colorScheme: 'light' });
+assert.ok(await contrast(page.locator('.sections i')) >= 4.5, 'the count of payments reads well in the light');
 assert.match(await text(page), /That’s the fewest it can be done in/);
 assert.match(await page.locator('.ticket').first().innerText(), /Priya\s+pays\s+you\s+€139.68/);
 await fits(page, 'squaring up');

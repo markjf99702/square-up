@@ -299,7 +299,7 @@ button.line { font: inherit; }
 .sections a { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 6px 4px; text-decoration: none; font-size: .9rem; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -2px; }
 .sections a[aria-current] { color: var(--print); border-bottom-color: var(--print); }
 .sections a:hover { color: var(--ink); }
-.sections i { font-style: normal; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--red); color: #fff; font-size: .74rem; letter-spacing: 0; font-stretch: 90%; }
+.sections i { font-style: normal; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--red); color: var(--btn-ink); font-size: .74rem; letter-spacing: 0; font-stretch: 90%; }
 
 /* The yellow carbon copy: what came in from a link */
 .carbon {
