@@ -151,6 +151,7 @@ function slip(t) {
   if (m.currency) lines.push(['~', `Now in ${m.currency[1]}, was ${m.currency[0]}`, '']);
   for (const name of m.people || []) lines.push(['+', `${name} joined the tab`, '']);
   for (const name of m.gone || []) lines.push(['−', `${name} left the tab`, '']);
+  for (const c of m.edited || []) lines.push(c.back ? ['+', `${c.now.name} ${several(c.now.name) ? 'are' : 'is'} back on the tab`, ''] : ['~', personWords(c), '']);
   for (const id of m.added || []) { const e = byId[id]; if (e && !e.deleted) lines.push(['+', label(e), money(t, e.amount)]); }
   for (const c of m.changed || []) {
     const e = byId[c.id];
@@ -166,6 +167,21 @@ function slip(t) {
       ${m.dropped ? `<p class="small">${plural(m.dropped, 'thing')} in the link didn’t add up and ${m.dropped === 1 ? 'was' : 'were'} left out.</p>` : ''}
       <div class="row">${m.ours ? '<button type="button" class="btn small" data-act="send">Send it back</button>' : ''}<button type="button" class="btn small" data-act="gotit">Got it</button></div>
     </aside>`;
+}
+
+// One line for someone whose details came in changed, by the name this phone had for them:
+// "Sam is now Samuel", "Sam added Venmo", "Jo & Priya now count as 2", or several of those in one line.
+function personWords({ was, now }) {
+  const many = several(was.name);
+  const apps = test => listWords(APPS.filter(a => test(was.pay?.[a.key], now.pay?.[a.key])).map(a => a.label));
+  const added = apps((a, b) => !a && b), renewed = apps((a, b) => a && b && a !== b), dropped = apps((a, b) => a && !b);
+  const bits = [];
+  if (now.name !== was.name) bits.push(`${many ? 'are' : 'is'} now ${now.name}`);
+  if (added) bits.push(`added ${added}`);
+  if (renewed) bits.push(`${many ? 'have' : 'has'} a new ${renewed}`);
+  if (dropped) bits.push(`removed ${dropped}`);
+  if (now.weight !== was.weight) bits.push(`${bits.length ? '' : 'now '}${many ? 'count' : 'counts'} as ${now.weight / 100}`);
+  return `${was.name} ${listWords(bits)}`;
 }
 
 function agoWords(at) {

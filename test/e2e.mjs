@@ -431,6 +431,42 @@ const [oddBackup] = await Promise.all([odd.page.waitForEvent('download'), odd.pa
 assert.deepEqual(JSON.parse(await readFile(await oddBackup.path(), 'utf8')).tabs.map(t => t.n), ['Old tab']);
 await odd.ctx.close();
 
+// ---------- A link that only changes people's details ----------
+// Alex sends the sample tab to Sam. Sam puts in his full name and his Venmo, and makes Jo & Priya count as
+// two and a half, then sends it back. Alex's carbon copy says each of those, rather than coming up blank.
+const alex = await device(), samuel = await device();
+await alex.page.goto(base + '#/sample');
+await onTab(alex.page);
+const sampleLink = await alex.page.evaluate(id => window.squareUp.tabLink(window.squareUp.store.get(id), ''), alex.page.url().split('/').pop());
+await samuel.page.goto(sampleLink);
+await onTab(samuel.page);
+await samuel.page.locator('.carbon [data-me]', { hasText: 'Sam' }).click();
+await samuel.page.click('.sections a:has-text("People")');
+const samRow = samuel.page.locator('.person').nth(1), jpRow = samuel.page.locator('.person').nth(2);
+assert.equal(await samRow.locator('[data-name]').inputValue(), 'Sam');
+await samRow.locator('[data-name]').fill('Samuel');
+await samRow.locator('summary').click(); // leaving the name saves it
+await samRow.locator('[data-handle="venmo"]').fill('samuel-k');
+await samRow.locator('[data-handle="venmo"]').blur();
+await jpRow.locator('summary').click();
+await jpRow.locator('[data-by="50"]').click();
+assert.equal(await jpRow.locator('.stepper b').innerText(), '2.5');
+await samuel.page.click('[data-act="send"]');
+await samuel.page.waitForFunction(() => document.querySelector('#sheetLink').value.includes('#/s/'));
+const detailsBack = await samuel.page.locator('#sheetLink').inputValue();
+await alex.page.goto(base + '#/');
+await alex.page.goto(detailsBack);
+await onTab(alex.page);
+const detailsSlip = await alex.page.locator('.carbon').innerText();
+assert.match(detailsSlip, /From Samuel’s link/i);
+assert.match(detailsSlip, /Sam is now Samuel and added Venmo/);
+assert.match(detailsSlip, /Jo & Priya now count as 2\.5/);
+assert.equal(await alex.page.locator('.carbon .changes li').count(), 2, 'a line for each of them');
+assert.doesNotMatch(detailsSlip, /Nothing new/);
+await fits(alex.page, 'a carbon copy of people’s details');
+await alex.ctx.close();
+await samuel.ctx.close();
+
 // ---------- Without JavaScript ----------
 // The message saying what it needs JavaScript for is the first thing on the page, above the footer.
 const nojs = await browser.newContext({ viewport: { width: 390, height: 844 }, javaScriptEnabled: false });

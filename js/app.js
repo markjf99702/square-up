@@ -5,7 +5,7 @@ import { store } from './store.js';
 import { readLink, tabLink } from './share.js';
 import { merge, nothingNew } from './merge.js';
 import { sampleTab } from './sample.js';
-import { settle } from './settle.js';
+import { settle, APPS } from './settle.js';
 import { app, esc, on, go, toast, money, moneyShort, whoLower, canSave, download, plural, dayRange, closeSheet } from './ui.js';
 import { tabScreen } from './tab.js';
 import { editor } from './editor.js';
@@ -75,15 +75,24 @@ async function receive(data) {
   }
   const { tab, changes } = merge(mine, theirs);
   const n = M.people(tab);
+  // People already here whose name, payment apps or count came in changed, or who were taken off here
+  // and came back: what they were here and what they are now. A change to nothing anyone can see isn't one.
+  const details = p => ({ name: p.name, weight: p.weight, pay: { ...p.pay } });
+  const differ = (a, b) => a.name !== b.name || a.weight !== b.weight || APPS.some(x => (a.pay[x.key] || '') !== (b.pay[x.key] || ''));
+  const edited = changes.people.changed.map(p => {
+    const was = mine.people.find(x => x.id === p.id);
+    return { was: details(was), now: details(p), ...(was.deleted ? { back: true } : {}) };
+  }).filter(c => c.back || differ(c.was, c.now));
   tab.local.merge = {
     at: Date.now(),
     from: fromName,
-    nothing: nothingNew(changes),
+    nothing: nothingNew({ ...changes, people: { ...changes.people, changed: edited } }),
     added: changes.added.map(e => e.id),
     changed: changes.changed.map(({ before, after }) => ({ id: after.id, was: before.amount })),
     removed: changes.removed.map(e => ({ kind: e.kind, what: e.what, from: e.from, to: e.to, amount: e.amount })),
     people: changes.people.added.filter(p => n.some(x => x.id === p.id)).map(p => p.name),
     gone: changes.people.removed.map(p => p.name),
+    edited,
     renamed: changes.renamed,
     currency: changes.currency,
     ours: changes.ours,
