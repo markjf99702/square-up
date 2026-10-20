@@ -29,6 +29,11 @@ test('reading amounts the way people type them', () => {
   const around = [['12 USD', 1200], ['CHF 12.50', 1250], ['R$ 12,50', 1250], ['12 kr', 1200], ['1 234,56 €', 123456],
     ['1 234,56', 123456], ["1'234.50", 123450], ['1’234.50', 123450], ['USD12', 1200], ['12.50$', 1250], ['6,50 + 4', 1050], ['−2+5', 300]];
   for (const [text, want] of around) assert.equal($.parse(text, 'USD'), want, text);
+  // A currency sign on each number of a sum is fine, but letters still aren't ("1e-3" isn't 1 − 3), and a sign
+  // between digits with no + or − isn't dropped either ("12€50" would be €1,250).
+  const sums = [['$12 + $4', 'USD', 1600], ['12 € + 4 €', 'EUR', 1600], ['£5+£3', 'GBP', 800],
+    ['1e-3', 'USD', null], ['12 USD + 4 USD', 'USD', null], ['12€50', 'EUR', null]];
+  for (const [text, cur, want] of sums) assert.equal($.parse(text, cur), want, text);
   assert.equal($.parse('1200', 'JPY'), 1200);
   assert.equal($.parse('1,200', 'JPY'), 1200);
   assert.equal($.parse('12.5', 'JPY'), null, 'yen has no cents');
