@@ -469,6 +469,9 @@ const openWindow = async () => (await import(`../js/store.js?window=${++windows}
 const savedTabs = () => JSON.parse(localStorage.getItem('square-up')).tabs;
 const savedTab = id => savedTabs().find(t => t.id === id);
 const later = () => new Promise(r => setTimeout(r, 5)); // a person's next tap is always a moment after the last
+// The newest change time on a tab. People added together get times a millisecond apart, so on a tab that was
+// only just made it can be a moment ahead of the clock.
+const newest = t => Math.max(t.changed, ...t.people.map(p => p.changed), ...t.entries.map(e => e.changed));
 function addPayment(t, amount) {
   const [from, to] = t.people.map(p => p.id);
   return M.putEntry(t, { id: M.newId(8), kind: 'payment', added: M.stamp(), from, to, amount, date: M.today(), note: '' });
@@ -511,6 +514,8 @@ test('two windows: a tab deleted in one stays deleted when the other only opens 
   const t = sampleTab();
   one.put(t);
   const two = await openWindow(), three = await openWindow();
+  // Deleting it comes after making it: wait until the clock has passed every change time on it.
+  while (Date.now() <= newest(t)) await later();
   one.remove(t.id);
   await later();
   // Window two still has it. Opening a tab saves when it was opened, which isn't a change to the tab.
