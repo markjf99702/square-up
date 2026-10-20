@@ -321,6 +321,11 @@ button.line { font: inherit; }
 .carbon .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
 .carbon .btn { background: transparent; border-color: var(--carbon-ink); color: var(--carbon-ink); text-shadow: none; }
 
+/* When this browser won't save: a notice at the top of the home screen and each tab */
+.unsaved { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px 14px; margin: 0 0 16px; padding: 12px 14px; background: var(--paper); border: 1.5px solid var(--red); border-left-width: 6px; border-radius: 4px; box-shadow: var(--shadow); }
+.unsaved p { flex: 1 1 260px; margin: 0; font-weight: 600; line-height: 1.4; }
+.unsaved .btn { flex: none; }
+
 /* Squaring up */
 .standing { list-style: none; margin: 0; padding: 0; }
 .standing li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px 12px; align-items: baseline; padding: 11px 14px 13px; border-bottom: 1px solid var(--rule); }

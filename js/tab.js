@@ -5,7 +5,7 @@ import { CURRENCIES, digits, symbol, parse, plain } from './money.js';
 import { store } from './store.js';
 import { tabLink } from './share.js';
 import { settle, payLinks, APPS, cleanHandle } from './settle.js';
-import { app, esc, on, go, toast, sheet, copy, money, who, whoLower, several, day, longDay, dayRange, plural, listWords, canSave, download } from './ui.js';
+import { app, esc, on, go, toast, sheet, copy, money, who, whoLower, several, day, longDay, dayRange, plural, listWords, canSave, download, unsaved } from './ui.js';
 
 const SECTIONS = [['expenses', 'Expenses', ''], ['square', 'Square up', '/square'], ['people', 'People', '/people']];
 
@@ -17,6 +17,7 @@ export function tabScreen(t, section) {
   else if (section === 'people') body = peopleSection(t);
   else body = expensesSection(t, plan);
   app.innerHTML = `
+    ${unsaved()}
     <div class="tabhead">
       <div class="tabhead-row">
         <div class="tabhead-title">

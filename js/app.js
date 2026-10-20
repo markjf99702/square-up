@@ -6,7 +6,7 @@ import { readLink, tabLink } from './share.js';
 import { merge, nothingNew } from './merge.js';
 import { sampleTab } from './sample.js';
 import { settle, APPS } from './settle.js';
-import { app, esc, on, go, toast, money, moneyShort, whoLower, canSave, download, plural, dayRange, closeSheet } from './ui.js';
+import { app, esc, on, go, toast, money, moneyShort, whoLower, canSave, download, plural, dayRange, closeSheet, unsaved } from './ui.js';
 import { tabScreen } from './tab.js';
 import { editor } from './editor.js';
 
@@ -208,6 +208,7 @@ function home() {
   const open = all.filter(t => !t.local.archived), shut = all.filter(t => t.local.archived);
   const sample = all.some(t => t.local.sample && !t.local.archived);
   app.innerHTML = `
+    ${unsaved()}
     <section class="hero${all.length ? ' compact' : ''}">
       ${all.length ? '' : heroCheck()}
       <h1>${all.length ? 'Your tabs' : 'Split the costs, then square up.'}</h1>

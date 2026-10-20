@@ -523,6 +523,43 @@ await onTab(w1);
 for (const what of ['Firewood', 'Ice', 'Matches']) assert.equal(await w1.locator('.line', { hasText: what }).count(), 1, `${what} is on the tab that came back`);
 await twin.ctx.close();
 
+// ---------- When this browser won't save ----------
+// The tools at junkdrawer.works share the browser's room for saving, and it can fill up. Then a notice on the tab
+// and the home screen says the tabs aren't being saved, with a button that saves a backup of everything here.
+const full = await device();
+await full.page.goto(base + '#/sample');
+await onTab(full.page);
+assert.equal(await full.page.locator('.unsaved').count(), 0, 'no notice while saving works');
+await full.page.evaluate(() => {
+  const set = Storage.prototype.setItem;
+  window.roomAgain = () => { Storage.prototype.setItem = set; };
+  Storage.prototype.setItem = function () { throw new DOMException('The quota has been exceeded.', 'QuotaExceededError'); };
+});
+await full.page.click('text=Add an expense');
+await full.page.fill('[data-key="what"]', 'Firewood');
+await full.page.fill('[data-key="amount"]', '20');
+await saveExpense(full.page, 'Firewood');
+const unsavedWords = 'This browser isn’t saving your tabs: its storage is full. Save a backup so you don’t lose them.';
+assert.equal(await full.page.locator('.unsaved p').innerText(), unsavedWords);
+await full.page.locator('.toast', { hasText: 'Added Firewood' }).waitFor(); // the toast doesn't take its place
+assert.equal(await full.page.locator('[role="alert"]').textContent(), unsavedWords, 'said once to a screen reader');
+await fits(full.page, 'a tab that isn’t being saved');
+// It's on the home screen too, once, and its button saves a backup with what couldn't be saved.
+await full.page.click('#allLink');
+await full.page.locator('.stubs').waitFor();
+assert.equal(await full.page.locator('.unsaved').count(), 1);
+const [rescue] = await Promise.all([full.page.waitForEvent('download'), full.page.click('.unsaved [data-act="backup"]')]);
+assert.ok(JSON.parse(await readFile(await rescue.path(), 'utf8')).tabs[0].e.some(e => e.w === 'Firewood'), 'the backup has the firewood');
+// Once a save works again (opening the tab saves), the notice goes, and everything waiting is saved.
+await full.page.evaluate(() => window.roomAgain());
+await full.page.click('.stub a');
+await onTab(full.page);
+assert.equal(await full.page.locator('.unsaved').count(), 0, 'the notice goes once a save works');
+await full.page.reload();
+await onTab(full.page);
+assert.equal(await full.page.locator('.line', { hasText: 'Firewood' }).count(), 1, 'the firewood is saved now');
+await full.ctx.close();
+
 // ---------- Without JavaScript ----------
 // The message saying what it needs JavaScript for is the first thing on the page, above the footer.
 const nojs = await browser.newContext({ viewport: { width: 390, height: 844 }, javaScriptEnabled: false });

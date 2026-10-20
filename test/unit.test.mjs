@@ -559,11 +559,15 @@ test('when storage is full, changes stay in this window and in a backup, and are
   const t = sampleTab(), u = sampleTab();
   one.put(t);
   one.put(u);
+  let heard = 0;
+  one.watch(() => heard++);
+  assert.equal(one.failed, '');
   room.room = 0; // full: no save fits
   const a = one.get(t.id);
   const pay = addPayment(a, 1234);
   assert.ok(one.put(a), 'still works here');
   assert.ok(!savedTab(t.id).entries.some(e => e.id === pay.id), 'but isn’t saved');
+  assert.equal(one.failed, 'full', 'and it says why');
   // Saving the other tab (opening it, say) doesn't drop the payment that couldn't be saved.
   const b = one.get(u.id);
   b.local.opened = Date.now();
@@ -573,12 +577,20 @@ test('when storage is full, changes stay in this window and in a backup, and are
   assert.equal(one.get(u.id), undefined, 'and the deleted tab is still gone');
   const backup = JSON.parse(one.backup());
   assert.ok(backup.tabs.find(w => w.i === t.id).e.some(e => e.i === pay.id), 'and in a backup');
+  assert.equal(heard, 1, 'it says so once, not on every save that fails');
   // Room again: the next save writes everything that's waiting.
   room.room = Infinity;
   one.name = 'Alex';
   assert.ok(savedTab(t.id).entries.some(e => e.id === pay.id));
   assert.equal(savedTab(u.id), undefined);
   assert.equal(JSON.parse(localStorage.getItem('square-up')).name, 'Alex');
+  assert.equal(one.failed, '');
+  assert.equal(heard, 2);
+  // Storage that's blocked rather than full says so.
+  room.setItem = () => { throw new DOMException('The operation is insecure.', 'SecurityError'); };
+  one.name = 'Al';
+  assert.equal(one.failed, 'blocked');
+  assert.equal(one.name, 'Al', 'and it still works here');
 });
 
 test('the offline copy lists every file the page needs', async () => {

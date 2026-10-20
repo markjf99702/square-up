@@ -1,7 +1,9 @@
 // Small pieces every screen uses: escaping, amounts and dates, the toast, the sheet,
-// copying links, and one set of event handlers for whichever screen is showing.
+// copying links, one set of event handlers for whichever screen is showing, and the notice
+// that shows when this browser won't save.
 import { format, formatShort } from './money.js';
-import { personName } from './model.js';
+import { personName, today } from './model.js';
+import { store } from './store.js';
 
 export const app = document.getElementById('app');
 
@@ -102,6 +104,34 @@ export function download(name, text, type = 'application/json') {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// ---------- When this browser won't save ----------
+// One notice at the top of the home screen and of a tab for as long as saving fails, rather than a toast
+// that the next one would cover up. The tabs are still whole on the page, so a backup keeps them.
+export const unsaved = () => `<div data-unsaved>${unsavedNote()}</div>`;
+
+function unsavedWords() {
+  const why = store.failed === 'full' ? ': its storage is full' : '';
+  return `This browser isn’t saving your tabs${why}. ${canSave() ? 'Save a backup so you don’t lose them.' : 'Send them as links so you don’t lose them.'}`;
+}
+function unsavedNote() {
+  if (!store.failed) return '';
+  return `<div class="unsaved"><p>${unsavedWords()}</p>${canSave() ? '<button type="button" class="btn small" data-act="backup">Save a backup</button>' : ''}</div>`;
+}
+
+// Said to a screen reader once a visit, the first time a save fails, not every time.
+const said = Object.assign(document.createElement('p'), { className: 'vh' });
+said.setAttribute('role', 'alert');
+document.body.append(said);
+
+store.watch(() => {
+  const slot = app.querySelector('[data-unsaved]');
+  if (slot) slot.innerHTML = unsavedNote();
+  if (store.failed && !said.textContent) said.textContent = unsavedWords();
+});
+app.addEventListener('click', e => {
+  if (e.target.closest('[data-act="backup"]')) download(`square-up-${today()}.json`, store.backup());
+});
 
 // A short name for a chip: the first word, or the whole thing if it's short.
 export function short(name) {

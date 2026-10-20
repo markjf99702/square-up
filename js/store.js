@@ -39,6 +39,12 @@ let state = read() || { tabs: [], name: '', deleted: [] };
 // back on top of what's saved, so they stay here, and go in a backup, until a save works.
 const unsaved = { tabs: new Map(), gone: new Map(), name: undefined };
 
+// Why the last save didn't work: 'full' (the tools at junkdrawer.works share the browser's room for saving,
+// so it can fill up) or 'blocked', or '' when it worked. The page shows a notice while it isn't ''.
+let failed = '';
+const watchers = [];
+const full = err => ['QuotaExceededError', 'NS_ERROR_DOM_QUOTA_REACHED'].includes(err?.name) || [22, 1014].includes(err?.code);
+
 // Whether this copy of a tab has changed since a moment: its name or currency, anyone on it or anything on it.
 const changedSince = (t, at) => [t, ...t.people, ...t.entries].some(x => (x?.changed || 0) > at);
 
@@ -73,22 +79,27 @@ function replay(next) {
 
 // Saves one change: reads what's saved, puts back anything from here that isn't saved yet, makes the change
 // and writes the lot. When nothing readable is saved, this window's own copy is all there is to work from.
-// Says whether it could be written.
+// Says whether it could be written, and remembers why not.
 function commit(change) {
   const saved = read();
   const next = saved || { ...state, tabs: [...state.tabs], deleted: [...state.deleted] };
   if (saved) replay(next);
   change(next);
   state = next;
+  let why = '';
   try {
     localStorage.setItem(KEY, JSON.stringify(next));
-  } catch {
-    return false; // can't save here; it still works for this visit
+    unsaved.tabs.clear();
+    unsaved.gone.clear();
+    unsaved.name = undefined;
+  } catch (err) {
+    why = full(err) ? 'full' : 'blocked'; // it still works for this visit
   }
-  unsaved.tabs.clear();
-  unsaved.gone.clear();
-  unsaved.name = undefined;
-  return true;
+  if (why !== failed) {
+    failed = why;
+    for (const f of watchers) f();
+  }
+  return !why;
 }
 
 // Another window saved: take what it saved, keeping anything from here that isn't saved yet.
@@ -119,6 +130,9 @@ export const store = {
       unsaved.gone.set(id, at);
     }
   },
+  // Why saving isn't working ('full' or 'blocked'), or '' while it is, and a way to hear when that changes.
+  get failed() { return failed; },
+  watch(f) { watchers.push(f); },
   get name() { return state.name || ''; },
   set name(v) {
     const name = String(v || '').slice(0, 40);
