@@ -17,8 +17,9 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    // The tools at junkdrawer.works share one address, and so one set of caches: clear out only Square Up's old ones.
-    .then(keys => Promise.all(keys.filter(k => k.startsWith('square-up-') && k !== CACHE).map(k => caches.delete(k))))
+    // The tools at junkdrawer.works share one address, and so one set of caches: clear out only Square Up's old ones,
+    // by their exact name, so a tool whose name starts the same way (square-up-something-v1) keeps its copy.
+    .then(keys => Promise.all(keys.filter(k => k !== CACHE && /^square-up-v[0-9]+$/.test(k)).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
