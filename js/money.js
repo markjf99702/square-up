@@ -56,10 +56,15 @@ export function plain(minor, currency) {
 }
 
 // Reads what someone typed: "12", "12.5", "12,50", "$1,234.56", "1.234,56", and sums like "6.50+4".
+// Currency signs and codes before or after the number are fine ("CHF 12.50", "12 kr"), but anything else
+// between two digits ("6.50 x 2", "1e3") means it isn't an amount written out, so it isn't read as one.
 // Returns minor units, or null if it can't be read as an amount.
 export function parse(text, currency = 'USD') {
   const d = digits(currency);
-  const s = String(text ?? '').replace(/[\s  ']/g, '').replace(/[^\d.,+\-−]/g, '').replace(/−/g, '-');
+  const typed = String(text ?? '');
+  // Between two digits only spaces, points, commas, the apostrophes some countries group thousands with, and + or −.
+  if ((typed.match(/\d\D+(?=\d)/g) || []).some(gap => /[^\s.,'’+\-−]/.test(gap.slice(1)))) return null;
+  const s = typed.replace(/[\s  ']/g, '').replace(/[^\d.,+\-−]/g, '').replace(/−/g, '-');
   if (!/\d/.test(s)) return null;
   const terms = s.match(/[+-]?[^+-]+/g);
   if (!terms || terms.join('') !== s) return null;

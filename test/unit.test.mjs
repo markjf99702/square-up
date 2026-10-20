@@ -23,6 +23,12 @@ test('reading amounts the way people type them', () => {
     ['12.345', 1234500], ['3.141', 314100], ['1.999', 199900], ['12.3456', null],
   ];
   for (const [text, want] of cases) assert.equal($.parse(text, 'USD'), want, text);
+  // Letters or signs between two digits aren't stripped into some other number: "6.50 x 2" isn't $6,502.
+  for (const text of ['6.50 x 2', '6.50×2', '6.50*2', '1e3', '1/2', '12a34']) assert.equal($.parse(text, 'USD'), null, text);
+  // Currency before or after the number still works, and so does grouping with spaces or apostrophes.
+  const around = [['12 USD', 1200], ['CHF 12.50', 1250], ['R$ 12,50', 1250], ['12 kr', 1200], ['1 234,56 €', 123456],
+    ['1 234,56', 123456], ["1'234.50", 123450], ['1’234.50', 123450], ['USD12', 1200], ['12.50$', 1250], ['6,50 + 4', 1050], ['−2+5', 300]];
+  for (const [text, want] of around) assert.equal($.parse(text, 'USD'), want, text);
   assert.equal($.parse('1200', 'JPY'), 1200);
   assert.equal($.parse('1,200', 'JPY'), 1200);
   assert.equal($.parse('12.5', 'JPY'), null, 'yen has no cents');
