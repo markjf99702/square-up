@@ -450,6 +450,137 @@ test('pay links', () => {
   assert.equal(cleanHandle('cashapp', 'https://cash.app/$samlee'), 'samlee');
 });
 
+// ---------- Saving in the browser ----------
+// Square Up open in several windows: each window loads its own copy of store.js, and they share one storage.
+function fakeStorage() {
+  const data = new Map();
+  return {
+    room: Infinity, // how many characters it can hold
+    getItem(k) { return data.has(k) ? data.get(k) : null; },
+    setItem(k, v) {
+      if (String(v).length > this.room) throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+      data.set(k, String(v));
+    },
+    removeItem(k) { data.delete(k); },
+  };
+}
+let windows = 0;
+const openWindow = async () => (await import(`../js/store.js?window=${++windows}`)).store;
+const savedTabs = () => JSON.parse(localStorage.getItem('square-up')).tabs;
+const savedTab = id => savedTabs().find(t => t.id === id);
+const later = () => new Promise(r => setTimeout(r, 5)); // a person's next tap is always a moment after the last
+function addPayment(t, amount) {
+  const [from, to] = t.people.map(p => p.id);
+  return M.putEntry(t, { id: M.newId(8), kind: 'payment', added: M.stamp(), from, to, amount, date: M.today(), note: '' });
+}
+
+test('two windows: saving in one keeps what the other saved meanwhile', async () => {
+  globalThis.localStorage = fakeStorage();
+  const one = await openWindow();
+  const t = sampleTab();
+  one.put(t);
+  const two = await openWindow();
+  // Window one adds a payment. Window two, still with the tab as it was, adds another.
+  const a = one.get(t.id), b = two.get(t.id);
+  const first = addPayment(a, 500);
+  one.put(a);
+  const second = addPayment(b, 700);
+  const saved = two.put(b);
+  for (const e of [first, second]) assert.ok(savedTab(t.id).entries.some(x => x.id === e.id), 'both payments are saved');
+  assert.ok(saved.entries.some(x => x.id === first.id), 'and window two gets the tab as saved, with the first one');
+  // A tab started in window one isn't lost when window two saves something else.
+  const z = M.blankTab('Rent', 'USD');
+  M.addPerson(z, 'A'); M.addPerson(z, 'B');
+  one.put(z);
+  two.name = 'Sam';
+  assert.ok(savedTab(z.id), 'the new tab is still saved');
+  assert.equal(JSON.parse(localStorage.getItem('square-up')).name, 'Sam');
+  // Window two changes Alex's count while window one renames the tab: both changes stay.
+  const c = two.get(t.id), d = one.get(t.id);
+  Object.assign(c.people[0], { weight: 200 }); M.touch(c.people[0]);
+  two.put(c);
+  d.name = 'Joshua Tree, again'; M.touch(d);
+  one.put(d);
+  assert.equal(savedTab(t.id).name, 'Joshua Tree, again');
+  assert.equal(savedTab(t.id).people[0].weight, 200);
+});
+
+test('two windows: a tab deleted in one stays deleted when the other only opens it', async () => {
+  globalThis.localStorage = fakeStorage();
+  const one = await openWindow();
+  const t = sampleTab();
+  one.put(t);
+  const two = await openWindow(), three = await openWindow();
+  one.remove(t.id);
+  await later();
+  // Window two still has it. Opening a tab saves when it was opened, which isn't a change to the tab.
+  const b = two.get(t.id);
+  b.local.opened = Date.now();
+  assert.equal(two.put(b), null, 'it stays deleted');
+  assert.equal(two.get(t.id), undefined);
+  assert.equal(savedTab(t.id), undefined);
+  // Window three adds something to it: that brings it back, the way a link sent back does.
+  const c = three.get(t.id);
+  const pay = addPayment(c, 900);
+  assert.ok(three.put(c));
+  assert.ok(savedTab(t.id).entries.some(x => x.id === pay.id), 'back, with the change');
+  assert.equal(JSON.parse(localStorage.getItem('square-up')).deleted.length, 0);
+  // An undo, a link or a backup brings it back with or without a change.
+  one.remove(t.id);
+  await later();
+  assert.ok(one.put(structuredClone(t), { back: true }));
+  assert.ok(savedTab(t.id));
+  const backup = one.backup();
+  two.remove(t.id);
+  assert.equal(two.restore(backup), 1);
+  assert.ok(savedTab(t.id), 'a backup brings it back');
+});
+
+test('saves from before deleted tabs were remembered still open, and a remembered tab that is back stays', async () => {
+  globalThis.localStorage = fakeStorage();
+  const t = sampleTab();
+  localStorage.setItem('square-up', JSON.stringify({ name: 'Alex', tabs: [{ ...M.shareable(t), local: { me: t.local.me } }] }));
+  const one = await openWindow();
+  assert.equal(one.name, 'Alex');
+  const a = one.get(t.id);
+  a.local.opened = Date.now();
+  assert.ok(one.put(a));
+  assert.equal(savedTab(t.id).local.me, t.local.me);
+  // An older copy of Square Up put a deleted tab back without taking it off the list: it's there, so it's back.
+  localStorage.setItem('square-up', JSON.stringify({ name: '', tabs: [{ ...M.shareable(t), local: {} }], deleted: [{ id: t.id, at: Date.now() + 1e6 }] }));
+  const two = await openWindow();
+  assert.ok(two.put(two.get(t.id)));
+  assert.ok(savedTab(t.id));
+});
+
+test('when storage is full, changes stay in this window and in a backup, and are saved once there is room', async () => {
+  const room = globalThis.localStorage = fakeStorage();
+  const one = await openWindow();
+  const t = sampleTab(), u = sampleTab();
+  one.put(t);
+  one.put(u);
+  room.room = 0; // full: no save fits
+  const a = one.get(t.id);
+  const pay = addPayment(a, 1234);
+  assert.ok(one.put(a), 'still works here');
+  assert.ok(!savedTab(t.id).entries.some(e => e.id === pay.id), 'but isn’t saved');
+  // Saving the other tab (opening it, say) doesn't drop the payment that couldn't be saved.
+  const b = one.get(u.id);
+  b.local.opened = Date.now();
+  one.put(b);
+  one.remove(u.id);
+  assert.ok(one.get(t.id).entries.some(e => e.id === pay.id), 'the payment is still here');
+  assert.equal(one.get(u.id), undefined, 'and the deleted tab is still gone');
+  const backup = JSON.parse(one.backup());
+  assert.ok(backup.tabs.find(w => w.i === t.id).e.some(e => e.i === pay.id), 'and in a backup');
+  // Room again: the next save writes everything that's waiting.
+  room.room = Infinity;
+  one.name = 'Alex';
+  assert.ok(savedTab(t.id).entries.some(e => e.id === pay.id));
+  assert.equal(savedTab(u.id), undefined);
+  assert.equal(JSON.parse(localStorage.getItem('square-up')).name, 'Alex');
+});
+
 test('the offline copy lists every file the page needs', async () => {
   const sw = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
   const listed = new Set([...sw.match(/const SHELL = \[([\s\S]*?)\];/)[1].matchAll(/'([^']+)'/g)].map(m => m[1]));

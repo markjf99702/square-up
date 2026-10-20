@@ -32,10 +32,12 @@ async function route() {
   }
   if (head === 's') return receive(path.slice(2));
   if (head === 't') {
-    const t = store.get(a);
+    let t = store.get(a);
+    if (t) {
+      t.local.opened = Date.now();
+      t = store.put(t); // as saved: with anything another window saved to it, or gone if another window deleted it
+    }
     if (!t) return message('That tab isn’t here', 'It may have been deleted, or it was started on another phone. Ask someone on it to send you the link.');
-    t.local.opened = Date.now();
-    store.put(t);
     document.title = `${t.name || 'Untitled tab'} · Square Up`;
     if (b === 'add') return editor(t, null, c === 'items' ? 'items' : 'equal');
     if (b === 'e') {
@@ -68,9 +70,10 @@ async function receive(data) {
   const { tab: theirs, from, dropped } = got;
   const fromName = theirs.people.find(p => p.id === from)?.name || '';
   const mine = store.get(theirs.id);
+  // A link always brings a tab in, even one deleted here.
   if (!mine) {
     theirs.local = { opened: Date.now(), merge: { at: Date.now(), from: fromName, fresh: true, dropped } };
-    store.put(theirs);
+    store.put(theirs, { back: true });
     return go(`/t/${theirs.id}`, true);
   }
   const { tab, changes } = merge(mine, theirs);
@@ -100,7 +103,7 @@ async function receive(data) {
   };
   // Something new on an archived tab brings it back onto the list.
   if (tab.local.archived && !tab.local.merge.nothing) tab.local.archived = false;
-  store.put(tab);
+  store.put(tab, { back: true });
   go(`/t/${tab.id}`, true);
 }
 

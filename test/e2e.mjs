@@ -467,6 +467,62 @@ await fits(alex.page, 'a carbon copy of people’s details');
 await alex.ctx.close();
 await samuel.ctx.close();
 
+// ---------- Square Up open in several windows ----------
+// Each window saves on top of what the others saved, so nothing is written over. A tab deleted in one window
+// stays deleted when another only has it open, and comes back when something is added to it there.
+const twin = await device();
+const w1 = twin.page, w2 = await twin.ctx.newPage(), w3 = await twin.ctx.newPage();
+for (const p of [w2, w3]) {
+  p.on('pageerror', e => problems.push(e.message));
+  p.on('console', m => { if (m.type() === 'error') problems.push(m.text()); });
+}
+await w1.goto(base + '#/sample');
+await onTab(w1);
+const twinId = w1.url().split('/').pop();
+// Window two starts adding ice while window one adds firewood and saves first.
+await w2.goto(base + `#/t/${twinId}/add`);
+await w2.fill('[data-key="what"]', 'Ice');
+await w2.fill('[data-key="amount"]', '8');
+await w1.click('text=Add an expense');
+await w1.fill('[data-key="what"]', 'Firewood');
+await w1.fill('[data-key="amount"]', '20');
+await saveExpense(w1, 'Firewood');
+await saveExpense(w2, 'Ice');
+assert.equal(await w2.locator('.line', { hasText: 'Firewood' }).count(), 1, 'window two shows window one’s firewood');
+await w1.reload();
+await onTab(w1);
+for (const what of ['Firewood', 'Ice']) assert.equal(await w1.locator('.line', { hasText: what }).count(), 1, `${what} is saved`);
+// Window three is adding matches when window one deletes the tab. Undo brings it back; then it's deleted again.
+await w3.goto(base + `#/t/${twinId}/add`);
+await w3.fill('[data-key="what"]', 'Matches');
+await w3.fill('[data-key="amount"]', '3');
+const deleteTab = async () => {
+  await w1.click('.sections a:has-text("People")');
+  await w1.click('[data-act="delete"]');
+  await w1.click('#delGo');
+  await w1.waitForURL(/#\/$/);
+};
+await deleteTab();
+await w1.click('.toast button'); // Undo
+await w1.waitForURL(/\/people$/);
+await w1.locator('.person').first().waitFor();
+await deleteTab();
+// Window two only moves to Square up, which isn't a change to the tab: it stays deleted.
+await w2.click('.sections a:has-text("Square up")');
+await w2.locator('.note-card').waitFor();
+assert.match(await text(w2), /That tab isn’t here/);
+await w1.reload();
+await w1.locator('.hero').waitFor();
+assert.equal(await w1.locator('.stub').count(), 0, 'still deleted');
+// Window three saves the matches: something added to the tab brings it back, the way a link sent back does.
+await saveExpense(w3, 'Matches');
+await w1.reload();
+await w1.locator('.stub').first().waitFor();
+await w1.click('.stub a');
+await onTab(w1);
+for (const what of ['Firewood', 'Ice', 'Matches']) assert.equal(await w1.locator('.line', { hasText: what }).count(), 1, `${what} is on the tab that came back`);
+await twin.ctx.close();
+
 // ---------- Without JavaScript ----------
 // The message saying what it needs JavaScript for is the first thing on the page, above the footer.
 const nojs = await browser.newContext({ viewport: { width: 390, height: 844 }, javaScriptEnabled: false });

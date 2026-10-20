@@ -33,7 +33,13 @@ export function tabScreen(t, section) {
   on(handlers(t, section, plan));
 }
 
-const redraw = (t, section) => tabScreen(store.get(t.id), section);
+// Draws the tab again as it's saved now, with anything another window saved to it. If another window deleted
+// it and nothing here brought it back, going through the address again says it isn't here.
+function redraw(t, section) {
+  const now = store.get(t.id);
+  if (!now) return dispatchEvent(new HashChangeEvent('hashchange'));
+  tabScreen(now, section);
+}
 
 // ---------- Expenses ----------
 
@@ -523,7 +529,7 @@ function deleteSheet(t) {
       store.remove(t.id);
       close();
       go('/');
-      toast(`Deleted “${t.name || 'Untitled tab'}”`, { label: 'Undo', run: () => { store.put(t); go(`/t/${t.id}/people`); } });
+      toast(`Deleted “${t.name || 'Untitled tab'}”`, { label: 'Undo', run: () => { store.put(t, { back: true }); go(`/t/${t.id}/people`); } });
     };
   });
 }

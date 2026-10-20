@@ -439,7 +439,7 @@ export function editor(t, existing, startHow = 'equal') {
         const old = M.removeEntry(t, existing.id);
         store.put(t);
         go(`/t/${t.id}`);
-        return toast(`Deleted ${old.what || 'it'}`, { label: 'Undo', run: () => { const x = store.get(t.id); M.putEntry(x, old); store.put(x); location.hash === `#/t/${t.id}` ? dispatchEvent(new HashChangeEvent('hashchange')) : go(`/t/${t.id}`); } });
+        return toast(`Deleted ${old.what || 'it'}`, { label: 'Undo', run: () => { const x = store.get(t.id) || t; M.putEntry(x, old); store.put(x); location.hash === `#/t/${t.id}` ? dispatchEvent(new HashChangeEvent('hashchange')) : go(`/t/${t.id}`); } });
       }
       if (d.payer) { st.payer = d.payer; st.several = false; return redrawKeepingFocus(); }
       if (d.act === 'several') {
